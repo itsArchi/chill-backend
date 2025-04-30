@@ -1,6 +1,6 @@
 const { body, param, validationResult } = require("express-validator");
 
-// Middleware untuk mengecek hasil validasi
+// MIDDLEWARE
 const validate = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -9,7 +9,7 @@ const validate = (req, res, next) => {
   next();
 };
 
-// Validasi untuk CREATE USER
+// VALIDASI CREATE USER
 const createUserValidation = [
   body("name").notEmpty().withMessage("Name is required"),
   body("email").isEmail().withMessage("Valid email is required"),
@@ -20,14 +20,14 @@ const createUserValidation = [
   validate,
 ];
 
-// Validasi untuk UPDATE USER
+// VALIDASI UPDATE USER
 const updateUserValidation = [
   param("id").isInt().withMessage("ID must be a number"),
   body("email").optional().isEmail().withMessage("Valid email required"),
   validate,
 ];
 
-// Validasi untuk GET/DELETE BY ID
+// VALIDASI GET/DELETE BY ID
 const idValidation = [
   param("id").isInt().withMessage("ID must be a number"),
   validate,

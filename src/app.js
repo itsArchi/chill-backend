@@ -21,7 +21,7 @@ app.use("/api", routes)
 app.use(express.json());
 
 sequelize
-  .sync()
+  .sync(force = true)
   .then(() => console.log('Database Connected'))
   .catch((err) => console.error('Error connecting to database:', err));
 

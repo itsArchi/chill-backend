@@ -44,38 +44,68 @@ exports.userRegister = async (req, res) => {
     const hash = await bcrypt.hash(password, saltRounds);
     await User.create({ username, fullname, email, password: hash, phone });
 
-    // Generate activation token (berlaku 1 hari)
+    // GENERATE TOKEN
     const activationToken = jwt.sign(
       { id: email, purpose: "activation" },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
 
-    // Setup transporter
+    // TRANSPORTER
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "sandbox.smtp.mailtrap.io",
+      port: 2525,
       auth: {
-        user: process.env.EMAIL,
-        pass: process.env.EMAIL_PASSWORD, // Gunakan App Password jika Gmail
+        user: process.env.EMAIL_APP_USERNAME,
+        pass: process.env.EMAIL_APP_PASSWORD,
       },
     });
 
-    // Link aktivasi
+    // LINK AKTIVASI
     const activationLink = `http://localhost:5000/api/v1/activate/${activationToken}`;
 
-    // Kirim email
-    await transporter.sendMail({
-      from: `"My App 👻" <${process.env.EMAIL_FROM}>`,
-      to: email,
-      subject: "Activate your account",
-      html: `<p>Hello ${fullname},</p>
-    <p>Please click the link below to activate your account:</p>
-    <a href="${activationLink}">${activationLink}</a>
-    <p>This link will expire in 24 hours.</p>`,
-    });
+    // KIRIM EMAIL
+    const sendEmail = async (to, subject, htmlContent) => {
+      try {
+        const info = await transporter.sendMail({
+          from: '"ChillApp" <noreply@chillapp.com>',
+          to,
+          subject,
+          html: htmlContent,
+        });
+
+        console.log("Email sent:", info.messageId);
+      } catch (error) {
+        console.error("Failed to send email:", error);
+      }
+    };
+
+    await sendEmail(
+      email,
+      "Aktivasi Akun ChillApp",
+      `
+        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+          <h2 style="color: #4F46E5;">Halo ${fullname},</h2>
+          <p>Terima kasih telah mendaftar di <strong>ChillApp</strong>!</p>
+          <p>Untuk mengaktifkan akunmu, silakan klik tombol di bawah ini:</p>
+          <p style="text-align: center; margin: 20px 0;">
+            <a href="${activationLink}" 
+               style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              Aktivasi Akun
+            </a>
+          </p>
+          <p>Jika tombol di atas tidak bekerja, kamu juga bisa klik atau salin link berikut ke browser:</p>
+          <p><a href="${activationLink}">${activationLink}</a></p>
+          <br>
+          <p>Salam hangat,</p>
+          <p><strong>Tim ChillApp</strong></p>
+        </div>
+      `
+    );
 
     return res.status(201).json({ message: "User created successfully" });
   } catch (error) {
+    console.error("Error:", error);
     return res.status(500).json({ error: error.message });
   }
 };
