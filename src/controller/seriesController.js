@@ -4,7 +4,33 @@ const { Op } = require("sequelize");
 // GET ALL SERIES
 exports.getAllSeries = async (req, res) => {
   try {
-    const series = await Series.findAll();
+    const { title, rating, sortBy, order, search } = req.query;
+
+    let where = {};
+
+    if (rating) {
+      where.rating = rating;
+    }
+
+    if (search) {
+      where.title = {
+        [Op.like]: `%${search}%`,
+      };
+    }
+
+    let orderQuery = [];
+    if (sortBy) {
+      orderQuery.push([
+        sortBy,
+        order?.toUpperCase() === "DESC" ? "DESC" : "ASC",
+      ]);
+    }
+
+    const series = await Series.findAll({
+      where,
+      order: orderQuery,
+    });
+
     res.json(series);
   } catch (error) {
     res.status(500).json({ message: "Error fetching series", error });
@@ -27,7 +53,8 @@ exports.getSeriesById = async (req, res) => {
 
 // ADD SERIES
 exports.addSeries = async (req, res) => {
-  const { title, description, total_episode, release_date, rating } = req.body;
+  const { id, title, description, total_episode, release_date, rating } =
+    req.body;
   if (!title || !description || !total_episode || !release_date || !rating) {
     return res.status(400).json({ message: "All fields are required" });
   }
@@ -43,6 +70,7 @@ exports.addSeries = async (req, res) => {
     });
     res.status(201).json({ message: "Series created successfully", newSeries });
   } catch (error) {
+    console.error("CREATE SERIES ERROR:", error);
     res.status(500).json({ message: "Error creating series", error });
   }
 };
@@ -55,7 +83,7 @@ exports.updateSeries = async (req, res) => {
 
   try {
     const series = await Series.findOne({ where: { id } });
-    if (!user) return res.status(400).json({ message: "Series not found" });
+    if (!series) return res.status(400).json({ message: "Series not found" });
 
     await series.update({
       title,
@@ -66,6 +94,7 @@ exports.updateSeries = async (req, res) => {
     });
     res.status(200).json({ message: "Series updated successfully", series });
   } catch (error) {
+    console.error("Update error:", error);
     res.status(500).json({ message: "Error updating series", error });
   }
 };
