@@ -15,10 +15,15 @@ const {
   idValidation,
 } = require("../middleware/userValidation");
 
+const { uploadFile } = require("../controller/uploadController");
+const upload = require("../middleware/upload");
+
 const router = express.Router();
 
 router.post("/register", userRegister);
 router.post("/login", userLogin);
+
+router.post("/upload", upload.single("image"), uploadFile);
 
 router.get("/users", getAllUser);
 router.get("/users/:id", idValidation, getUserById);
