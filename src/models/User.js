@@ -39,6 +39,10 @@ const User = sequelize.define(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    verifikasi_token: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    }
   },
   {
     timestamps: true,

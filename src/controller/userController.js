@@ -3,6 +3,7 @@ const validator = require("validator");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const nodemailer = require("nodemailer");
+const { v4: uuidv4 } = require("uuid");
 
 const saltRounds = 10;
 
@@ -23,6 +24,7 @@ const validateUserInput = ({ username, fullname, email, password, phone }) => {
 // REGISTER
 exports.userRegister = async (req, res) => {
   const { username, fullname, email, password, phone } = req.body;
+  const verifikasi_token = uuidv4();
   const validationError = validateUserInput({
     username,
     fullname,
@@ -42,7 +44,14 @@ exports.userRegister = async (req, res) => {
       return res.status(400).json({ error: "Username already exists" });
 
     const hash = await bcrypt.hash(password, saltRounds);
-    await User.create({ username, fullname, email, password: hash, phone });
+    await User.create({
+      username,
+      fullname,
+      email,
+      password: hash,
+      phone,
+      verifikasi_token,
+    });
 
     // GENERATE TOKEN
     const activationToken = jwt.sign(
@@ -62,7 +71,7 @@ exports.userRegister = async (req, res) => {
     });
 
     // LINK AKTIVASI
-    const activationLink = `http://localhost:5000/api/v1/activate/${activationToken}`;
+    const activationLink = `http://localhost:5000/api/v1/verifikasi-email?token=${verifikasi_token}`;
 
     // KIRIM EMAIL
     const sendEmail = async (to, subject, htmlContent) => {
@@ -82,6 +91,7 @@ exports.userRegister = async (req, res) => {
 
     await sendEmail(
       email,
+      verifikasi_token,
       "Aktivasi Akun ChillApp",
       `
         <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
@@ -107,6 +117,27 @@ exports.userRegister = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     return res.status(500).json({ error: error.message });
+  }
+};
+
+// VERIFY EMAIL
+exports.verifyEmail = async (req, res) => {
+  const { token } = req.query;
+
+  try {
+    const user = await User.findOne({ where: { verifikasi_token: token } });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid token" });
+    }
+
+    user.verifikasi_token = null;
+    await user.save();
+
+    return res.status(200).json({ message: "Email verified successfully" });
+  } catch (error) {
+    console.error("Verification error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
